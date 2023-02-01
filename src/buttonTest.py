@@ -1,13 +1,16 @@
 import discord
 import env
+from _datetime import datetime
 
 TOKEN = env.token
 testingServers = env.serverList
 bot = discord.Bot()
+currentTime = datetime.now()
 
 
 # class MyView(discord.ui.View): # Create a class called MyView that subclasses discord.ui.View
-#     @discord.ui.button(label="Standard", style=discord.ButtonStyle.primary, row=0) # Create a button with the label "😎 Click me!" with color Blurple
+#     @discord.ui.button(label="Standard", style=discord.ButtonStyle.primary, row=0) # Create a button with the label
+#     "😎 Click me!" with color Blurple
 #     async def button_callback(self, button, interaction):
 #         await interaction.response.send_message("You clicked the button!") # Send a message when the button is clicked
 #
@@ -22,13 +25,10 @@ class WeeklyButton(discord.ui.View):
 
     @discord.ui.button(label="Standard", style=discord.ButtonStyle.primary, row=0)
     async def button_callback(self, button, interaction):
-        userdata = get_user_id(interaction.user)
-        name = userdata[0]
-        name_id = userdata[1]
+        get_user_id(interaction.user)
         for child in self.children:  # loop through all the children of the view
             child.disabled = True  # set the button to disabled
         await interaction.response.edit_message(view=None, content="You clicked the Standard button!")
-        print(name, name_id)
 
     @discord.ui.button(label="Hard", style=discord.ButtonStyle.primary, row=0)
     async def second_button_callback(self, button, interaction):
@@ -99,10 +99,10 @@ async def button(ctx):
 
 
 def get_user_id(ctx):
+    global currentTime
     author_name = ctx
     author_id = ctx.id
-    print(author_name)
-    print(author_id)
+    print(author_name,"-", author_id, ",", currentTime)
     return author_name, author_id
 
 
