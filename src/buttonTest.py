@@ -27,12 +27,11 @@ class WeeklyButton(discord.ui.View):
 
     @discord.ui.button(label="Standard", style=discord.ButtonStyle.primary, row=0)
     async def button_callback(self, button, interaction):
-        get_user_id(interaction)
-        get_channel(interaction)
+        author, author_id, guild, guild_id = get_user_id(interaction)
         for child in self.children:  # loop through all the children of the view
             child.disabled = True  # set the button to disabled
         await interaction.response.edit_message(view=None, content="You clicked the Standard button!")
-
+        print(author, author_id, guild, guild_id)
 
     @discord.ui.button(label="Hard", style=discord.ButtonStyle.primary, row=0)
     async def second_button_callback(self, button, interaction):
@@ -103,16 +102,11 @@ async def button(ctx):
 
 
 def get_user_id(ctx):
-    global currentTime
     author_name = ctx.user
     author_id = ctx.id
-    print(author_name,"-", author_id, ",", currentTime)
-    return author_name, author_id
-
-
-def get_channel(ctx):
-    channel = ctx.channel
-    print(channel)
+    guild = ctx.guild
+    guild_id = ctx.guild.id
+    return author_name, author_id, guild, guild_id
 
 
 bot.run(TOKEN)
