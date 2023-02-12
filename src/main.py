@@ -5,13 +5,15 @@ from discord import option
 import env
 import datetime
 import turtle
-from weeklySQL import WeeklySQL
+from weeklySQL import WeeklyInput
+
 
 TOKEN = env.token
 testingServers = env.serverList
 bot = discord.Bot()
 
 con = sqlite3.connect(':memory:')
+# con = sqlite3.connect("SAP_Challenge.db")
 
 c = con.cursor()
 
@@ -19,25 +21,28 @@ weekly_id_current = 0
 challenge_type = "weekly"
 current_weekly_date = '2023-04-28 09:55:20.156'
 
+tables = ['temp_weekly', 'weekly', 'bingo', 'temp_bingo', 'score', 'mode_dim', 'week_dim', 'achievement_dim']
 
 def checktablexists(dbcon, tablename):
     """Checks to see if the database already exists"""
     dbcurs = dbcon.cursor()
-    dbcurs.execute("""SELECT name FROM sqlite_master WHERE type ='table'""")
+    table = dbcurs.execute("""SELECT name FROM sqlite_schema WHERE type ='table' AND name = (?)""",
+                           (tablename,)).fetchall()
     print(dbcurs.fetchall())
-    if dbcurs.fetchone() is None :
+    if table == []:
+        print(str(tablename)+" doesn't exist.")
         dbcurs.close()
-#        return True
+        return False
     else:
+        print(str(tablename)+" exists.")
         dbcurs.close()
-#        return False
+        return True
 
 
 def make_db():
     # "Make the weekly tables"
     if checktablexists(con, "weekly"):
         print("weekly exists")
-        return
     else:
         c.execute("""CREATE TABLE weekly (
                         compound_id text NOT NULL,
@@ -45,13 +50,14 @@ def make_db():
                         weekly_id integer,
                         mode integer,
                         score integer,
-                        date_entered text,
-                        PRIMARY KEY(compound_id, weekly_id, mode)
+                        server_id integer,
+                        entry_date text,
+                        PRIMARY KEY(compound_id, mode, server_id)
                         )""")
         print("weekly created")
+
     if checktablexists(con, "temp_weekly"):
         print("temp_weekly exists")
-        return
     else:
         c.execute("""CREATE TABLE temp_weekly (
                         compound_id text NOT NULL,
@@ -59,14 +65,14 @@ def make_db():
                         weekly_id integer,
                         mode integer,
                         score integer,
-                        date_entered text,
-                        PRIMARY KEY(compound_id, weekly_id, mode)
+                        server_id integer,
+                        entry_date text,
+                        PRIMARY KEY(compound_id, mode, server_id)
                         )""")
         print("temp_weekly created")
     # "Make the bingo tables"
     if checktablexists(con, "bingo"):
         print("bingo exists")
-        return
     else:
         c.execute("""CREATE TABLE bingo (
                         compound_id text NOT NULL,
@@ -75,13 +81,13 @@ def make_db():
                         achievement integer,
                         ranking integer,
                         score integer,
+                        server_id integer,
                         date_entered text,
-                        PRIMARY KEY(weekly_id, achievement, ranking)
+                        PRIMARY KEY(weekly_id, achievement, ranking, server_id)
                         )""")
         print("bingo created")
     if checktablexists(con, "temp_bingo"):
         print("temp_bingo exists")
-        return
     else:
         c.execute("""CREATE TABLE temp_bingo (
                         compound_id text NOT NULL,
@@ -90,25 +96,25 @@ def make_db():
                         achievement integer,
                         ranking integer,
                         score integer,
+                        server_id integer,
                         date_entered text,
-                        PRIMARY KEY(weekly_id, achievement, ranking)
+                        PRIMARY KEY(weekly_id, achievement, ranking, server_id)
                         )""")
         print("temp_bingo created")
     # "Make the auxiliary tables"
     if checktablexists(con, "score"):
         print("score exists")
-        return
     else:
         c.execute("""CREATE TABLE score (
                         user_id text,
-                        date text NOT NULL,
-                        score integer,
+                        entry_date text NOT NULL,
+                        points integer,
+                        weekly_id text,
                         PRIMARY KEY(user_id)
                         )""")
         print("score created")
     if checktablexists(con, "mode_dim"):
         print("mode_dim exists")
-        return
     else:
         c.execute("""CREATE TABLE mode_dim (
                         mode integer,
@@ -118,61 +124,42 @@ def make_db():
         print("mode_dim created")
     if checktablexists(con, "week_dim"):
         print("week_dim exists")
-        return
     else:
         c.execute("""CREATE TABLE week_dim (
                         weekly_id integer,
                         date text,
                         PRIMARY KEY(weekly_id)
                         )""")
-        print("mode_dim created")
+        print("week_dim created")
+    if checktablexists(con, "achievement_dim"):
+        print("achievement_dim exists")
+    else:
+        c.execute("""CREATE TABLE achievement_dim (
+                        achievement text,
+                        start_coord text,
+                        end_coord text,
+                        description text,
+                        PRIMARY KEY(achievement)
+                        )""")
+        print("achievement_dim created")
+    print("\nDatabase is made!")
+    return
 
 
-def input_temp_weekly(w_in):
-
-    user_id = w_in[1]
-    entry_date = w_in[6]
-    mode = w_in[7]
-
-    def scorer(var):
-        match var:
-            case 1:
-                return 2
-            case 2:
-                return 1
-            case 3:
-                return 2
-            case 4:
-                return 1
-            case 5:
-                return 2
-            case 6:
-                return 1
-            case 7:
-                return 2
-            case 8:
-                return 2
-
-    points = scorer(mode)
-    compound = str(user_id) + '*' + str(weekly_id_current)
-
-    with con:
-        c.execute("INSERT INTO temp_weekly VALUES (:compound_id, :user_id, :weekly_id, :mode,"
-                  " :score, :date_entered)",
-                  {'compound_id': compound, 'user_id': user_id, 'weekly_id': weekly_id_current, 'mode': mode,
-                   'score': points, 'date_entered': entry_date})
+def check_for_copy():
+    return
 
 
-def get_game_attr(ctx, mode_num):
-    author_name = ctx.user
-    author_id = ctx.user.id
-    guild = ctx.guild
-    guild_id = ctx.guild.id
-    current_weekly = current_weekly_date
-    weekly_id = weekly_id_current
-    entry_date = datetime.datetime.now()
-    mode = mode_num
-    return [author_name, author_id, guild, guild_id, current_weekly, weekly_id, entry_date, mode]
+def get_game_attr(ctx, week_id, mode_num):
+    author_name = ctx.user                      # 0
+    author_id = ctx.user.id                     # 1
+    guild = ctx.guild                           # 2
+    guild_id = ctx.guild.id                     # 3
+    weekly_id = week_id                         # 4
+    entry_date = datetime.datetime.now()        # 5
+    mode = mode_num                             # 6
+    print(author_name, author_id, guild, guild_id, weekly_id, entry_date, mode)
+    return [author_name, author_id, guild, guild_id, weekly_id, entry_date, mode]
 
 
 def get_table_data(dbcon, challenge_name, user_data):
@@ -215,21 +202,35 @@ async def work(ctx):
 
 @bot.slash_command(guild_ids=testingServers, name="weekly", description="Claim a weekly win")
 async def work(ctx, mode):
-    await ctx.respond(f"You claimed the blank mode!")
-    input_temp_weekly(get_game_attr(ctx, mode))
+    mod_str = "You claimed the" + str(mode) + " mode!"
+    await ctx.respond(f"{mod_str}")
+    WeeklyInput.input_temp_weekly(get_game_attr(ctx, weekly_id_current, mode), con, weekly_id_current)
+
 
 """
-@bot.slash_command(name="sum", description="Add stuff")
-async def add(ctx, first: int, second: int):
-    plus = first + second
-    await ctx.respond(f"{first} plus {second} is {plus}.")
+@bot.slash_command(guild_ids=testingServers, name="weekly", description="Claim a weekly win")
+async def work(ctx, mode):
+    mod_str = "You claimed the" + str(mode) + " mode!"
+    await ctx.respond("One Moment")
+    if check_for_copy():
+        WeeklyInput.input_temp_weekly(get_game_attr(ctx, weekly_id_current, mode), con, weekly_id_current)
+        await ctx.respond(f"{mod_str}")
 
-
-@bot.slash_command(name="dif", description="Subtract stuff")
-async def subtract(ctx, first: int, second: int):
-    dif = first - second
-    await ctx.respond(f"{first} minus {second} is {dif}.")
+    else:
+        await ctx.respond("You can only claim that challenge once this week.")
 """
+
+# @bot.slash_command(name="sum", description="Add stuff")
+# async def add(ctx, first: int, second: int):
+#     plus = first + second
+#     await ctx.respond(f"{first} plus {second} is {plus}.")
+#
+#
+# @bot.slash_command(name="dif", description="Subtract stuff")
+# async def subtract(ctx, first: int, second: int):
+#     dif = first - second
+#     await ctx.respond(f"{first} minus {second} is {dif}.")
+
 
 make_db()
 
