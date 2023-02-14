@@ -19,14 +19,15 @@ class WeeklySQL:
 
 class WeeklyInput:
 
-    def __init__(self, user_id, entry_date, mode):
-        self.user_id = user_id
-        self.entry_date = entry_date
-        self.mode = mode
+    def __init__(self, w_in, conn, weekly_id_current):
+        self.w_in = w_in
+        self.conn = conn
+        self.weekly_id_current = weekly_id_current
 
     def __repr__(self):
-        return "User('{}', '{}', '{}')".format(self.user_id, self.mode, self.date_entered)
+        return "User('{}', '{}', '{}')".format(self.user_id, self.mode, self.entry_date)
 
+    @staticmethod
     def input_temp_weekly(w_in, conn, weekly_id_current):
 
         user_id = w_in[1]
@@ -60,12 +61,20 @@ class WeeklyInput:
         compound = str(user_id) + '*' + str(weekly_id_current)
 
         with temp_con:
-            try:
-                temp_curs.execute("INSERT INTO temp_weekly VALUES (:compound_id, :user_id, :weekly_id, :mode,"
+            temp_curs.execute("INSERT INTO temp_weekly VALUES (:compound_id, :user_id, :weekly_id, :mode,"
                               " :score, :server_id, :entry_date)",
                               {'compound_id': compound, 'user_id': user_id, 'weekly_id': weekly_id_current,
                                'mode': mode, 'score': points, 'server_id': server_id, 'entry_date': entry_date})
-                temp_con.commit()
-            except sqlite3.IntegrityError as e:
-                print("You cannot claim the same challenge this week.", e)
-                return
+            temp_con.commit()
+
+        # with temp_con:
+        #     try:
+        #         temp_curs.execute("INSERT INTO temp_weekly VALUES (:compound_id, :user_id, :weekly_id, :mode,"
+        #                           " :score, :server_id, :entry_date)",
+        #                           {'compound_id': compound, 'user_id': user_id, 'weekly_id': weekly_id_current,
+        #                            'mode': mode, 'score': points, 'server_id': server_id, 'entry_date': entry_date})
+        #         temp_con.commit()
+        #         return None
+        #     except sqlite3.IntegrityError as e:
+        #         print("You cannot claim the same challenge this week.", e)
+        #         return False
