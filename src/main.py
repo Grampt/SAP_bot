@@ -1,8 +1,10 @@
 import discord
 import sqlite3
+import time
 import numpy as np
 from discord import option
 from discord import commands
+from discord import default_permissions
 import env
 import datetime
 import turtle
@@ -158,6 +160,13 @@ def check_for_copy():
     return
 
 
+def pause(a: int):
+    if a > 5:
+        a == 5
+    time.sleep(a)
+    return
+
+
 def check_owner_or_permissions(**perms):
     original = commands.has_permissions(**perms).predicate
 
@@ -231,13 +240,38 @@ async def work(ctx, mode):
 
 
 # Admin Commands
-# @bot.slash_command(guild_ids=testingServers, name="new_week", description="Start a new challenge event! Weekly or Bingo")
-# async def new_week(ctx, game_mode):
-#     if ctx.guild.:
-#         await ctx.respond(f"Starting new {game_mode} challenge.")
-#         print(f'New {game_mode} challenge started!')
-#     else:
-#         await ctx.respond(f"I'm sorry {ctx.author}, I can't let you do that.")
+@bot.slash_command(guild_ids=testingServers, name="new_week",
+                   description="Start a new challenge event! Weekly or Bingo")
+@default_permissions(administrator=True)
+async def new_week(ctx, game_mode):
+    if default_permissions(administrator=True):
+        if game_mode == "Standard":
+            await ctx.respond(f"Preparing new {game_mode} challenge.")
+            # Function to move temp_weekly data to weekly, weekly_dim, score, and ???
+            pause(1)
+            await ctx.respond(f"Moving data from previous challenge into the ether.")
+            # Function to determine the scores of each player this week.
+            pause(1)
+            await ctx.respond(f"Determining quasar phase shift physics.")
+            # Function to drop rows in temp_weekly and start from scratch
+            pause(1)
+            await ctx.respond(f"New {game_mode} challenge is ready!")
+        elif game_mode == "Bingo":
+            await ctx.respond(f"Preparing new {game_mode} challenge.")
+            # Function to move temp_bingo data to bingo, weekly_dim, score, and achievement
+            pause(1)
+            await ctx.respond(f"Dropping data from previous challenge into free fall.")
+            # Function to determine the scores of each player this week.
+            pause(1)
+            await ctx.respond(f"Biscuits being counted.")
+            # Function to drop rows in temp_bingo and start from scratch
+            pause(1)
+            await ctx.respond(f"New {game_mode} challenge is ready!")
+        else:
+            await ctx.respond(f"{game_mode} is not an existing mode. Please enter Standard or Bingo.")
+    else:
+        await ctx.respond(f"I'm sorry {ctx.author}, I can't let you do that.")
+
 
 """
 @bot.slash_command(guild_ids=testingServers, name="weekly", description="Claim a weekly win")
