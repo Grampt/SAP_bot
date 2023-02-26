@@ -9,6 +9,7 @@ import env
 import datetime
 import turtle
 from weeklySQL import WeeklyInput
+from buttonTest import WeeklyButton
 
 TOKEN = env.token
 testingServers = env.serverList
@@ -24,7 +25,27 @@ challenge_type = "weekly"
 current_weekly_date = '2023-04-28 09:55:20.156'
 
 tables = ['temp_weekly', 'weekly', 'bingo', 'temp_bingo', 'score', 'mode_dim', 'week_dim', 'achievement_dim']
-roles = ['King Penguin']
+
+
+#   Notes on Table/Column/Row interactions, Foreign Keys
+#   Weekly: compound_id is a concatenation of the
+#
+#   week_dim: make the table, query compound key of most recent weekly_id per game_mode per server_id, write to table
+#
+#
+#
+#
+# fall
+
+
+def create_connection(db_file):
+    connect = None
+    try:
+        connect = sqlite3.connect(':memory:')
+    except Exception as e:
+        print(e)
+
+    return connect
 
 
 def check_table_exists(dbcon, table_name):
@@ -167,15 +188,16 @@ def pause(a: int):
     return
 
 
-def check_owner_or_permissions(**perms):
-    original = commands.has_permissions(**perms).predicate
+def move_temp_table(modename):
+    sql_week = """INSERT INTO weekly FROM temp_weekly"""
 
-    async def extended_check(ctx):
-        if ctx.guild is None:
-            return False
-        return ctx.guild.owner_id == ctx.author.id or await original(ctx)
+    if modename == "Standard":
 
-    return commands.check(extended_check)
+        return
+    elif modename == "Bingo":
+        return
+    else:
+        print("Error in move_temp_table name.")
 
 
 def get_game_attr(ctx, week_id, mode_num):
@@ -229,14 +251,19 @@ async def work(ctx):
     print(get_table_data(con, challenge_type, ctx))
 
 
-@bot.slash_command(guild_ids=testingServers, name="weekly", description="Claim a weekly win")
-async def work(ctx, mode):
-    mod_str = "You claimed the " + str(mode) + " mode!"
-    try:
-        WeeklyInput.input_temp_weekly(get_game_attr(ctx, weekly_id_current, mode), con, weekly_id_current)
-        await ctx.respond(f'{mod_str}')
-    except sqlite3.IntegrityError as e:
-        await ctx.respond(f'You have completed this challenge already this week.')
+# @bot.slash_command(guild_ids=testingServers, name="weekly", description="Claim a weekly win")
+# async def work(ctx, mode):
+#     mod_str = "You claimed the " + str(mode) + " mode!"
+#     try:
+#         WeeklyInput.input_temp_weekly(get_game_attr(ctx, weekly_id_current, mode), con, weekly_id_current)
+#         await ctx.respond(f'{mod_str}')
+#     except sqlite3.IntegrityError as e:
+#         await ctx.respond(f'You have completed this challenge already this week.')
+
+
+@bot.slash_command(guild_ids=testingServers, name="weekly", description="Claim the accomplishment")
+async def button(ctx):
+    await ctx.respond("Which did you complete?", view=WeeklyButton(ctx))
 
 
 # Admin Commands
@@ -245,7 +272,7 @@ async def work(ctx, mode):
 @default_permissions(administrator=True)
 async def new_week(ctx, game_mode):
     if default_permissions(administrator=True):
-        if game_mode == "Standard":
+        if game_mode == "Weekly":
             await ctx.respond(f"Preparing new {game_mode} challenge.")
             # Function to move temp_weekly data to weekly, weekly_dim, score, and ???
             pause(1)
@@ -271,31 +298,6 @@ async def new_week(ctx, game_mode):
             await ctx.respond(f"{game_mode} is not an existing mode. Please enter Standard or Bingo.")
     else:
         await ctx.respond(f"I'm sorry {ctx.author}, I can't let you do that.")
-
-
-"""
-@bot.slash_command(guild_ids=testingServers, name="weekly", description="Claim a weekly win")
-async def work(ctx, mode):
-    mod_str = "You claimed the" + str(mode) + " mode!"
-    await ctx.respond("One Moment")
-    if check_for_copy():
-        WeeklyInput.input_temp_weekly(get_game_attr(ctx, weekly_id_current, mode), con, weekly_id_current)
-        await ctx.respond(f"{mod_str}")
-
-    else:
-        await ctx.respond("You can only claim that challenge once this week.")
-"""
-
-# @bot.slash_command(name="sum", description="Add stuff")
-# async def add(ctx, first: int, second: int):
-#     plus = first + second
-#     await ctx.respond(f"{first} plus {second} is {plus}.")
-#
-#
-# @bot.slash_command(name="dif", description="Subtract stuff")
-# async def subtract(ctx, first: int, second: int):
-#     dif = first - second
-#     await ctx.respond(f"{first} minus {second} is {dif}.")
 
 
 make_db()

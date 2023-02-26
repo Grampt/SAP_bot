@@ -4,10 +4,10 @@ import discord
 import env
 from _datetime import datetime
 
-TOKEN = env.token
+# TOKEN = env.token
 testingServers = env.serverList
 bot = discord.Bot()
-currentTime = datetime.now()
+# currentTime = datetime.now()
 
 
 # class MyView(discord.ui.View): # Create a class called MyView that subclasses discord.ui.View
@@ -111,4 +111,4 @@ def get_user_id(ctx):
     return author_name, author_id, guild, guild_id, channel
 
 
-bot.run(TOKEN)
+# bot.run(TOKEN)
