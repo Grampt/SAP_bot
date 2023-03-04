@@ -9,16 +9,16 @@ import env
 import datetime
 import turtle
 from weeklySQL import WeeklyInput
-from buttonTest import WeeklyButton
+import buttonTest
+
 
 TOKEN = env.token
 testingServers = env.serverList
 bot = discord.Bot()
 
-con = sqlite3.connect(':memory:')
+database = ':memory:'
 # con = sqlite3.connect("SAP_Challenge.db")
-
-c = con.cursor()
+# c = con.cursor()
 
 weekly_id_current = 0
 challenge_type = "weekly"
@@ -41,11 +41,18 @@ tables = ['temp_weekly', 'weekly', 'bingo', 'temp_bingo', 'score', 'mode_dim', '
 def create_connection(db_file):
     connect = None
     try:
-        connect = sqlite3.connect(':memory:')
+        connect = sqlite3.connect(db_file)
     except Exception as e:
         print(e)
 
     return connect
+
+
+def pause(a: int):
+    if a > 5:
+        a == 5
+    time.sleep(a)
+    return
 
 
 def check_table_exists(dbcon, table_name):
@@ -63,13 +70,31 @@ def check_table_exists(dbcon, table_name):
         dbcurs.close()
         return True
 
+#   Notes on Table/Column/Row interactions, Foreign Keys
+#   Weekly: compound_id is a concatenation of the
+#
+#   week_dim: make the table, query compound key of most recent weekly_id per game_mode per server_id, write to table
+#
+#
+#
+#
+# fall
+
+
+def close_conn(connection_link):
+    cur = connection_link.cursor()
+    cur.close()
+    return
+
 
 def make_db():
     # "Make the weekly tables"
-    if check_table_exists(con, "weekly"):
+    connect = create_connection(database)
+    curs = connect.cursor()
+    if check_table_exists(connect, "weekly"):
         print("weekly exists")
     else:
-        c.execute("""CREATE TABLE weekly (
+        curs.execute("""CREATE TABLE weekly (
                         compound_id text,
                         user_id integer,
                         weekly_id integer,
@@ -78,14 +103,14 @@ def make_db():
                         server_id integer,
                         entry_date text,
                         game_mode text,
-                        PRIMARY KEY(compound_id, mode, server_id, entry_date)
+                        PRIMARY KEY(user_id, weekly_id, mode, server_id, game_mode)
                         )""")
         print("weekly created")
 
-    if check_table_exists(con, "temp_weekly"):
+    if check_table_exists(connect, "temp_weekly"):
         print("temp_weekly exists")
     else:
-        c.execute("""CREATE TABLE temp_weekly (
+        curs.execute("""CREATE TABLE temp_weekly (
                         compound_id text,
                         user_id integer,
                         weekly_id integer,
@@ -94,14 +119,14 @@ def make_db():
                         server_id integer,
                         entry_date text,
                         game_mode text,
-                        PRIMARY KEY(compound_id, mode, server_id, entry_date)
+                        PRIMARY KEY(user_id, weekly_id, mode, server_id, game_mode)
                         )""")
         print("temp_weekly created")
     # "Make the bingo tables"
-    if check_table_exists(con, "bingo"):
+    if check_table_exists(connect, "bingo"):
         print("bingo exists")
     else:
-        c.execute("""CREATE TABLE bingo (
+        curs.execute("""CREATE TABLE bingo (
                         compound_id text,
                         user_id integer,
                         weekly_id integer,
@@ -109,14 +134,15 @@ def make_db():
                         ranking integer,
                         score integer,
                         server_id integer,
-                        date_entered text,
-                        PRIMARY KEY(weekly_id, achievement, ranking, server_id)
+                        entry_date text,
+                        game_mode text,
+                        PRIMARY KEY(weekly_id, achievement, ranking, server_id, game_mode)
                         )""")
         print("bingo created")
-    if check_table_exists(con, "temp_bingo"):
+    if check_table_exists(connect, "temp_bingo"):
         print("temp_bingo exists")
     else:
-        c.execute("""CREATE TABLE temp_bingo (
+        curs.execute("""CREATE TABLE temp_bingo (
                         compound_id text,
                         user_id integer,
                         weekly_id integer,
@@ -124,56 +150,80 @@ def make_db():
                         ranking integer,
                         score integer,
                         server_id integer,
-                        date_entered text,
-                        PRIMARY KEY(weekly_id, achievement, ranking, server_id)
+                        entry_date text,
+                        game_mode text,
+                        PRIMARY KEY(weekly_id, achievement, ranking, server_id, game_mode)
                         )""")
         print("temp_bingo created")
     # "Make the auxiliary tables"
-    if check_table_exists(con, "score"):
+    if check_table_exists(connect, "score"):
         print("score exists")
     else:
-        c.execute("""CREATE TABLE score (
+        curs.execute("""CREATE TABLE score (
                         user_id integer,
                         server_id integer,
                         entry_date text,
                         points integer,
-                        weekly_id text,
+                        weekly_id integer,
                         PRIMARY KEY(user_id, server_id)
                         )""")
         print("score created")
-    if check_table_exists(con, "mode_dim"):
+    if check_table_exists(connect, "mode_dim"):
         print("mode_dim exists")
     else:
-        c.execute("""CREATE TABLE mode_dim (
+        curs.execute("""CREATE TABLE mode_dim (
                         mode integer,
                         description text,
+                        points integer,
                         PRIMARY KEY(mode)
                         )""")
         print("mode_dim created")
-    if check_table_exists(con, "week_dim"):
+    if check_table_exists(connect, "week_dim"):
         print("week_dim exists")
     else:
-        c.execute("""CREATE TABLE week_dim (
+        curs.execute("""CREATE TABLE week_dim (
                         weekly_id integer,
                         server_id integer,
                         game_mode text,
-                        date text,
+                        start_date text,
                         PRIMARY KEY(weekly_id, server_id, game_mode)
                         )""")
         print("week_dim created")
-    if check_table_exists(con, "achievement_dim"):
+    if check_table_exists(connect, "achievement_dim"):
         print("achievement_dim exists")
     else:
-        c.execute("""CREATE TABLE achievement_dim (
+        curs.execute("""CREATE TABLE achievement_dim (
                         achievement integer,
                         server_id integer,
+                        points integer,
+                        rank integer,
                         start_coord text,
                         end_coord text,
                         description text,
                         PRIMARY KEY(achievement, server_id)
                         )""")
         print("achievement_dim created")
+    if check_table_exists(connect, "img_dim"):
+        print("img_dim exists")
+    else:
+        curs.execute("""CREATE TABLE img_dim (
+                        server_id integer,
+                        weekly_id integer,
+                        img blob,
+                        PRIMARY KEY(server_id, weekly_id)
+                        )""")
+        print("img_dim created")
+    if check_table_exists(connect, "team_achieve_dim"):
+        print("team_achieve dim exists")
+    else:
+        curs.execute("""CREATE TABLE team_achieve_dim (
+                        achieve_num integer,
+                        point_value int,
+                        PRIMARY KEY(achieve_num)
+                        )""")
+        print("team_achieve_dim created")
     print("\nDatabase is made!")
+    close_conn(connect)
     return
 
 
@@ -181,23 +231,15 @@ def check_for_copy():
     return
 
 
-def pause(a: int):
-    if a > 5:
-        a == 5
-    time.sleep(a)
-    return
-
-
-def move_temp_table(modename):
-    sql_week = """INSERT INTO weekly FROM temp_weekly"""
-
-    if modename == "Standard":
-
-        return
-    elif modename == "Bingo":
-        return
-    else:
-        print("Error in move_temp_table name.")
+# def check_owner_or_permissions(**perms):
+#     original = commands.has_permissions(**perms).predicate
+#
+#     async def extended_check(ctx):
+#         if ctx.guild is None:
+#             return False
+#         return ctx.guild.owner_id == ctx.author.id or await original(ctx)
+#
+#     return commands.check(extended_check)
 
 
 def get_game_attr(ctx, week_id, mode_num):
@@ -248,7 +290,9 @@ async def greet(ctx):
 @bot.slash_command(guild_ids=testingServers, name="score", description="Get my score")
 async def work(ctx):
     await ctx.respond(f"Here is your data:")
+    con = create_connection(database)
     print(get_table_data(con, challenge_type, ctx))
+    close_conn(con)
 
 
 # @bot.slash_command(guild_ids=testingServers, name="weekly", description="Claim a weekly win")
@@ -263,11 +307,23 @@ async def work(ctx):
 
 @bot.slash_command(guild_ids=testingServers, name="weekly", description="Claim the accomplishment")
 async def button(ctx):
-    await ctx.respond("Which did you complete?", view=WeeklyButton(ctx))
+    await ctx.respond("Which did you complete?", view=buttonTest.WeeklyButtons(ctx))
+
+
+@bot.slash_command(guild_ids=testingServers, name="bingo", description="Claim the accomplishment")
+async def button(ctx):
+    await ctx.respond("Which did you complete?", view=buttonTest.BingoButtons(ctx, 0, "this", 'this'))
 
 
 # Admin Commands
 @bot.slash_command(guild_ids=testingServers, name="new_week",
+                   description="Start a new challenge event! Weekly or Bingo")
+@default_permissions(administrator=True)
+async def button(ctx):
+    await ctx.respond("What challenge do we want this week?", view=buttonTest.NewWeekButtons(ctx))
+
+
+@bot.slash_command(guild_ids=testingServers, name="new_week2",
                    description="Start a new challenge event! Weekly or Bingo")
 @default_permissions(administrator=True)
 async def new_week(ctx, game_mode):
