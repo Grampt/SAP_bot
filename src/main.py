@@ -9,7 +9,7 @@ import env
 import datetime
 import turtle
 from weeklySQL import WeeklyInput
-import buttonTest
+import buttonLayouts
 
 
 TOKEN = env.token
@@ -231,17 +231,6 @@ def check_for_copy():
     return
 
 
-# def check_owner_or_permissions(**perms):
-#     original = commands.has_permissions(**perms).predicate
-#
-#     async def extended_check(ctx):
-#         if ctx.guild is None:
-#             return False
-#         return ctx.guild.owner_id == ctx.author.id or await original(ctx)
-#
-#     return commands.check(extended_check)
-
-
 def get_game_attr(ctx, week_id, mode_num):
     author_name = ctx.user  # 0
     author_id = ctx.user.id  # 1
@@ -307,12 +296,12 @@ async def work(ctx):
 
 @bot.slash_command(guild_ids=testingServers, name="weekly", description="Claim the accomplishment")
 async def button(ctx):
-    await ctx.respond("Which did you complete?", view=buttonTest.WeeklyButtons(ctx))
+    await ctx.respond("Which did you complete?", view=buttonLayouts.WeeklyButtons(ctx))
 
 
 @bot.slash_command(guild_ids=testingServers, name="bingo", description="Claim the accomplishment")
 async def button(ctx):
-    await ctx.respond("Which did you complete?", view=buttonTest.BingoButtons(ctx, 0, "this", 'this'))
+    await ctx.respond("Which did you complete?", view=buttonLayouts.BingoButtonsMain(ctx))
 
 
 # Admin Commands
@@ -320,7 +309,7 @@ async def button(ctx):
                    description="Start a new challenge event! Weekly or Bingo")
 @default_permissions(administrator=True)
 async def button(ctx):
-    await ctx.respond("What challenge do we want this week?", view=buttonTest.NewWeekButtons(ctx))
+    await ctx.respond("What challenge do we want this week?", view=buttonLayouts.NewWeekButtons(ctx))
 
 
 @bot.slash_command(guild_ids=testingServers, name="new_week2",
