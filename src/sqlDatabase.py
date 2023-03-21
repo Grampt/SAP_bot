@@ -73,7 +73,10 @@ def make_db():
                         server_id integer,
                         entry_date text,
                         game_mode text,
-                        PRIMARY KEY(user_id, weekly_id, mode, server_id, game_mode)
+                        PRIMARY KEY(user_id, weekly_id, mode, server_id, game_mode),
+                        FOREIGN KEY(weekly_id) REFERENCES week_dim(weekly_id),
+                        FOREIGN KEY(server_id) REFERENCES week_dim(server_id),
+                        FOREIGN KEY(game_mode) REFERENCES week_dim(game_mode)
                         )""")
         print("temp_weekly created")
     # "Make the bingo tables"
@@ -107,6 +110,9 @@ def make_db():
                         entry_date text,
                         game_mode text,
                         PRIMARY KEY(weekly_id, achievement, ranking, server_id, game_mode)
+                        FOREIGN KEY(weekly_id) REFERENCES week_dim(weekly_id),
+                        FOREIGN KEY(server_id) REFERENCES week_dim(server_id),
+                        FOREIGN KEY(game_mode) REFERENCES week_dim(game_mode)
                         )""")
         print("temp_bingo created")
     # "Make the auxiliary tables"
@@ -165,6 +171,8 @@ def make_db():
                         weekly_id integer,
                         img blob,
                         PRIMARY KEY(server_id, weekly_id)
+                        FOREIGN KEY(server_id) REFERENCES week_dim(server_id),
+                        FOREIGN KEY(weekly_id) REFERENCES week_dim(weekly_id)
                         )""")
         print("img_dim created")
     if check_table_exists(connect, "team_achieve_dim"):
