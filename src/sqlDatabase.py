@@ -2,7 +2,6 @@ import sqlite3
 import datetime
 import time
 
-
 database = ':memory:'
 
 tables = ['temp_weekly', 'weekly', 'temp_bingo', 'bingo', 'score', 'mode_dim', 'week_dim', 'achievement_dim',
@@ -10,9 +9,15 @@ tables = ['temp_weekly', 'weekly', 'temp_bingo', 'bingo', 'score', 'mode_dim', '
 
 
 def create_connection(db_file):
+    """ create a database connection to the SQLite database
+            specified by db_file
+        :param db_file: database file
+        :return: Connection object or None
+        """
     connect = None
     try:
         connect = sqlite3.connect(db_file)
+        return connect
     except Exception as e:
         print(e)
 
@@ -41,7 +46,7 @@ def close_conn(connection_link):
     return
 
 
-def make_db():
+def create_db():
     # "Make the weekly tables"
     connect = create_connection(database)
     curs = connect.cursor()
@@ -146,6 +151,7 @@ def make_db():
                         server_id integer,
                         game_mode text,
                         start_date text,
+                        team_size integer 
                         PRIMARY KEY(weekly_id, server_id, game_mode)
                         )""")
         print("week_dim created")
@@ -179,9 +185,11 @@ def make_db():
         print("team_achieve dim exists")
     else:
         curs.execute("""CREATE TABLE team_achieve_dim (
-                        achieve_num integer,
-                        point_value int,
-                        PRIMARY KEY(achieve_num)
+                        team_bonus text,
+                        server_id integer,
+                        point_value integer,
+                        team_size_qualifier text,
+                        PRIMARY KEY(team_bonus)
                         )""")
         print("team_achieve_dim created")
     print("\nDatabase is made!")
