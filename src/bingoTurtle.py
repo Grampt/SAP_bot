@@ -14,10 +14,6 @@ image_dims = [img_height, img_width]
 turtle1 = turtle
 
 
-def get_image():
-    return
-
-
 def coord_shift(height, width, dictionary):
     loop_limit = 0
 
